@@ -3,7 +3,7 @@ flask-cors==4.0.1
 requests==2.32.3
 python-dotenv==1.0.1
 yara-python==4.5.1
-
+pyzipper
 
 
 

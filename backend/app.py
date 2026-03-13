@@ -1,22 +1,21 @@
 """
-app.py — MalDNA Flask API
-Step 3: Bazaar + YARA fully integrated
-Run: python app.py
+app.py — MalDNA Flask API — Step 8: Threat Actor Mapping
 """
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from modules.bazaar      import lookup_hash, detect_hash_type
-from modules.yara_engine import run_yara_scan
+from modules.bazaar       import lookup_hash, detect_hash_type
+from modules.yara_engine  import run_yara_scan
+from modules.threat_mapper import map_threat_actor
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# ── Health ────────────────────────────────────────────────────────
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
-        "status": "online", "engine": "MalDNA v0.1", "step": 3,
+        "status": "online", "engine": "MalDNA v0.1", "step": 8,
         "modules": {
             "bazaar_lookup":   True,
             "yara_engine":     True,
@@ -24,16 +23,16 @@ def health():
             "feature_builder": False,
             "similarity":      False,
             "confidence":      False,
-            "threat_mapper":   False,
+            "threat_mapper":   True,
             "mitre_mapper":    False,
             "containment":     False,
         }
     })
 
-# ── Demo samples — REPLACE sha256 values with real ones ──────────
+
 DEMO_SAMPLES = {
     "mirai":  {"sha256": "dc4c4501e56d73d40a8e5fb00f4e0ad74335e2aa8c588373509438af312b1450", "family": "Mirai",  "type": "Botnet",     "arch": "MIPS"},
-    "mozi":   {"sha256": "22ea54360f7b59f926660f70b05b11f6b00bc1519b5114df06176d0c53003e24", "family": "Mozi",   "type": "P2P Botnet", "arch": "ARM"},
+    "mozi":   {"sha256": "22ea54360f7b59f926660f70b05b11f6b00bc1519b5114df06176d0c53003e24", "family": "Mozi",   "type": "P2P Botnet", "arch": "MIPS"},
     "gafgyt": {"sha256": "76847058eeedd24ced98caf9803b6f5eb68ce7476b89d05c54c630fe60c65c8a", "family": "Gafgyt", "type": "DDoS Bot",   "arch": "x86"},
 }
 
@@ -41,7 +40,7 @@ DEMO_SAMPLES = {
 def sample_hashes():
     return jsonify({"status": "ok", "samples": DEMO_SAMPLES})
 
-# ── Main analysis ─────────────────────────────────────────────────
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     body     = request.get_json(silent=True) or {}
@@ -57,7 +56,7 @@ def analyze():
 
     print(f"\n[MalDNA] ── Analysis ── {hash_type.upper()}: {hash_val[:20]}...")
 
-    # ── Step 2: MalwareBazaar ────────────────────────────────────
+    # ── Step 2: Bazaar ───────────────────────────────────────────
     print("[MalDNA] Step 2: Bazaar lookup...")
     bazaar_result = lookup_hash(hash_val)
 
@@ -66,22 +65,23 @@ def analyze():
     if hash_type == "sha256":
         yara_result = run_yara_scan(sha256=hash_val)
     else:
-        yara_result = {
-            "status":  "skipped",
-            "message": "YARA binary download requires SHA256. Provide SHA256 to enable YARA scanning.",
-            "matches": [], "match_count": 0,
-        }
+        yara_result = {"status": "skipped", "message": "SHA256 required for YARA", "matches": [], "match_count": 0}
 
-    # ── Family verdict: YARA > Bazaar > Unknown ──────────────────
+    # ── Family verdict ────────────────────────────────────────────
     family, family_source = "Unknown", "none"
     if yara_result.get("status") == "matched" and yara_result.get("top_family"):
         family, family_source = yara_result["top_family"], "yara"
     elif bazaar_result.get("status") == "found":
         sig = bazaar_result.get("metadata", {}).get("signature", "")
-        if sig: family, family_source = sig, "bazaar_signature"
+        if sig:
+            family, family_source = sig, "bazaar_signature"
 
-    # ── Summary ──────────────────────────────────────────────────
+    # ── Step 8: Threat Actor Mapping ─────────────────────────────
+    print(f"[MalDNA] Step 8: Threat actor mapping for '{family}'...")
     meta = bazaar_result.get("metadata", {})
+    threat_result = map_threat_actor(family, metadata=meta)
+
+    # ── Summary ───────────────────────────────────────────────────
     summary = {
         "family":        family,
         "family_source": family_source,
@@ -93,6 +93,8 @@ def analyze():
         "ssdeep":        meta.get("ssdeep", ""),
         "yara_hits":     yara_result.get("match_count", 0),
         "top_severity":  yara_result.get("top_severity", "UNKNOWN"),
+        "threat_level":  threat_result.get("threat_level", "UNKNOWN"),
+        "actor_name":    threat_result.get("actor_name", "Unknown"),
     } if bazaar_result.get("status") == "found" else {
         "family": "Unknown", "message": "Hash not in MalwareBazaar"
     }
@@ -116,7 +118,6 @@ def analyze():
                 "matches":      yara_result.get("matches", []),
                 "top_family":   yara_result.get("top_family", ""),
                 "top_severity": yara_result.get("top_severity", ""),
-                "top_rule":     yara_result.get("top_rule", ""),
                 "rules_loaded": yara_result.get("rules_loaded", 0),
                 "scan_mode":    yara_result.get("scan_mode", ""),
                 "sample_size":  yara_result.get("sample_size", 0),
@@ -126,15 +127,39 @@ def analyze():
             "step_5_features":   {"status": "pending"},
             "step_6_similarity": {"status": "pending"},
             "step_7_confidence": {"status": "pending"},
-            "step_8_threat_map": {"status": "pending"},
-            "step_9_mitre":      {"status": "pending"},
-            "step_10_contain":   {"status": "pending"},
+            "step_8_threat_map": {
+                "status":       threat_result.get("status", "unknown"),
+                "actor_name":   threat_result.get("actor_name", "Unknown"),
+                "actor_id":     threat_result.get("actor_id", ""),
+                "also_known_as":threat_result.get("also_known_as", []),
+                "origin":       threat_result.get("origin", "Unknown"),
+                "motivation":   threat_result.get("motivation", []),
+                "active_since": threat_result.get("active_since", ""),
+                "active_until": threat_result.get("active_until", ""),
+                "actor_status": threat_result.get("status", ""),
+                "threat_level": threat_result.get("threat_level", "UNKNOWN"),
+                "description":  threat_result.get("description", ""),
+                "targeted_sectors": threat_result.get("targeted_sectors", []),
+                "targeted_regions": threat_result.get("targeted_regions", []),
+                "capabilities": threat_result.get("capabilities", []),
+                "exploited_cves":   threat_result.get("exploited_cves", []),
+                "mitre_techniques": threat_result.get("mitre_techniques", []),
+                "ioc_patterns":     threat_result.get("ioc_patterns", []),
+                "infrastructure":   threat_result.get("infrastructure", {}),
+                "related_families": threat_result.get("related_families", []),
+                "references":       threat_result.get("references", []),
+                "analyst_notes":    threat_result.get("analyst_notes", ""),
+                "enrichment":       threat_result.get("enrichment", {}),
+            },
+            "step_9_mitre":    {"status": "pending"},
+            "step_10_contain": {"status": "pending"},
         }
     })
 
+
 if __name__ == "__main__":
     print("="*50)
-    print("  MalDNA Engine — Step 3 (YARA)")
+    print("  MalDNA Engine — Step 8 (Threat Actor Mapping)")
     print("  http://localhost:5000")
     print("="*50)
     app.run(debug=True, host="0.0.0.0", port=5000, use_reloader=False)
