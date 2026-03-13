@@ -81,7 +81,7 @@ raw_score = ssdeep_compare(orig_ssdeep, mut_ssdeep)
 print(f"Raw ssdeep score: {raw_score}/100")
 
 # ── Feed mutated ssdeep to MalDNA (empty SHA256 = not in DB) ───────
-from modules.fuzzy_hash import run_fuzzy_hash
+from modules.fuzzy_hash2 import run_fuzzy_hash
 print("\n[*] Running MalDNA fuzzy engine with mutated ssdeep + empty SHA256...")
 result = run_fuzzy_hash(ssdeep_hash=mut_ssdeep, sha256="")
 

@@ -5,7 +5,7 @@ We test with ssdeep hashes of DIFFERENT samples that are NOT in the DB.
 """
 import sys, os
 sys.path.insert(0, '.')
-from modules.fuzzy_hash import run_fuzzy_hash, _ssdeep_compare
+from modules.fuzzy_hash2 import run_fuzzy_hash, _ssdeep_compare
 
 print("=" * 65)
 print("PART 1 — Confirm what IS in the reference DB")

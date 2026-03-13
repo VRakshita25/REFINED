@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>MalDNA — Malware Intelligence Engine</title>
+<title>MalDNA — Integrated Malware Intelligence Engine</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet"/>
 <style>
   :root{--bg:#050810;--surface:#0a0f1e;--card:#0d1526;--border:#1a2744;--accent:#00f5d4;--accent2:#f72585;--accent3:#7209b7;--text:#c8d8f0;--muted:#4a6080;--danger:#ff4757;--warn:#ffc300;--mono:'Share Tech Mono',monospace;--sans:'Rajdhani',sans-serif;}
@@ -20,7 +20,7 @@
   .status-bar{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:20px;font-family:var(--mono);font-size:0.7rem;color:var(--muted);}
   .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);animation:pulse 2s infinite;}
   .tab-group{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;width:fit-content;margin:0 auto 32px;animation:fadeUp 0.7s 0.2s ease both;flex-wrap:wrap;justify-content:center;}
-  .tab-btn{font-family:var(--mono);font-size:0.78rem;letter-spacing:0.1em;padding:10px 22px;background:transparent;border:none;border-radius:6px;color:var(--muted);cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
+  .tab-btn{font-family:var(--mono);font-size:0.78rem;letter-spacing:0.1em;padding:10px 18px;background:transparent;border:none;border-radius:6px;color:var(--muted);cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
   .tab-btn.active{background:linear-gradient(135deg,rgba(0,245,212,0.15),rgba(114,9,183,0.15));color:var(--accent);border:1px solid rgba(0,245,212,0.3);}
   .tab-btn.fuzzy-tab.active{background:linear-gradient(135deg,rgba(247,37,133,0.15),rgba(114,9,183,0.15));color:var(--accent2);border:1px solid rgba(247,37,133,0.3);}
   .tab-btn:hover:not(.active){color:var(--text);}
@@ -31,6 +31,7 @@
   .panel{display:none;}.panel.active{display:block;}
   .input-label{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
   .input-label::before{content:'//';color:var(--muted);}
+  .input-label.fuzzy{color:var(--accent2);}
   .hash-input-wrap{position:relative;}
   .hash-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 120px 16px 20px;font-family:var(--mono);font-size:0.85rem;color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s;letter-spacing:0.05em;}
   .hash-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,245,212,0.08);}
@@ -39,6 +40,13 @@
   .hash-type-row{display:flex;gap:10px;margin-top:14px;}
   .hash-type-chip{font-family:var(--mono);font-size:0.65rem;padding:5px 14px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:default;transition:all 0.2s;letter-spacing:0.1em;}
   .hash-type-chip.selected{background:rgba(247,37,133,0.12);border-color:var(--accent2);color:var(--accent2);}
+  .drop-zone{border:2px dashed var(--border);border-radius:10px;padding:60px 20px;text-align:center;cursor:pointer;transition:all 0.25s;position:relative;}
+  .drop-zone.drag-over{border-color:var(--accent2);background:rgba(247,37,133,0.06);transform:scale(1.01);}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .drop-icon{font-size:3rem;margin-bottom:12px;}
+  .drop-label{font-family:var(--mono);font-size:0.8rem;color:var(--muted);line-height:1.8;}
+  .drop-label span{color:var(--accent2);}
+  .file-info{display:none;margin-top:16px;padding:12px 16px;background:rgba(247,37,133,0.08);border:1px solid rgba(247,37,133,0.25);border-radius:6px;font-family:var(--mono);font-size:0.75rem;color:var(--accent2);text-align:left;}
   .demo-section{margin-top:28px;}
   .section-title{font-family:var(--mono);font-size:0.65rem;letter-spacing:0.25em;color:var(--muted);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
   .section-title::after{content:'';flex:1;height:1px;background:var(--border);}
@@ -61,6 +69,14 @@
   .btn-analyze:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
   .btn-fuzzy{background:linear-gradient(135deg,rgba(247,37,133,0.12),rgba(114,9,183,0.12));border-color:rgba(247,37,133,0.4);color:var(--accent2);}
   .btn-fuzzy::before{background:linear-gradient(135deg,rgba(247,37,133,0.2),rgba(114,9,183,0.2));}
+  .fuzzy-demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  @media(max-width:600px){.fuzzy-demo-grid{grid-template-columns:1fr;}}
+  .fuzzy-preset{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s;}
+  .fuzzy-preset:hover{border-color:var(--accent2);transform:translateY(-1px);}
+  .fuzzy-preset-name{font-family:var(--mono);font-size:0.7rem;color:var(--accent2);margin-bottom:4px;}
+  .fuzzy-preset-desc{font-family:var(--mono);font-size:0.58rem;color:var(--muted);line-height:1.5;}
+  .ssdeep-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:0.75rem;color:var(--text);outline:none;transition:border-color 0.2s;letter-spacing:0.03em;resize:vertical;min-height:80px;}
+  .ssdeep-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(247,37,133,0.08);}
   #result-section{margin-top:32px;display:none;animation:fadeUp 0.5s ease both;}
   .result-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
   .result-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(0,245,212,0.04);border-bottom:1px solid var(--border);}
@@ -79,6 +95,11 @@
   .av-section{margin-top:16px;}.av-title{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
   .av-list{display:flex;flex-wrap:wrap;gap:6px;}
   .av-chip{font-family:var(--mono);font-size:0.58rem;padding:3px 10px;background:rgba(255,71,87,0.08);border:1px solid rgba(255,71,87,0.25);border-radius:3px;color:#ff6b7a;}
+  .threat-section{margin-top:20px;padding:14px 16px;background:rgba(114,9,183,0.12);border:1px solid rgba(114,9,183,0.4);border-radius:8px;}
+  .threat-title{font-family:var(--mono);font-size:0.65rem;letter-spacing:0.2em;color:var(--accent3);text-transform:uppercase;margin-bottom:10px;}
+  .threat-row{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:0.7rem;color:var(--muted);}
+  .threat-pill{font-family:var(--mono);font-size:0.58rem;padding:3px 9px;border-radius:999px;border:1px solid rgba(200,200,255,0.25);background:rgba(10,15,30,0.8);color:var(--text);margin:3px 4px 0 0;}
+  .threat-level-pill{font-family:var(--mono);font-size:0.58rem;padding:3px 9px;border-radius:999px;}
   .raw-toggle{font-family:var(--mono);font-size:0.62rem;color:var(--muted);cursor:pointer;margin-top:16px;display:inline-block;letter-spacing:0.1em;}
   .raw-toggle:hover{color:var(--accent);}
   .raw-json-wrap{display:none;margin-top:12px;}.raw-json-wrap.open{display:block;}
@@ -103,16 +124,6 @@
   .backend-dot.online{background:var(--accent);box-shadow:0 0 6px var(--accent);}
   .backend-dot.offline{background:var(--danger);box-shadow:0 0 6px var(--danger);}
   .backend-dot.checking{background:var(--warn);animation:pulse 1s infinite;}
-  /* Fuzzy test panel styles */
-  .fuzzy-demo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-  @media(max-width:600px){.fuzzy-demo-grid{grid-template-columns:1fr;}}
-  .fuzzy-preset{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all 0.2s;}
-  .fuzzy-preset:hover{border-color:var(--accent2);transform:translateY(-1px);}
-  .fuzzy-preset-name{font-family:var(--mono);font-size:0.7rem;color:var(--accent2);margin-bottom:4px;}
-  .fuzzy-preset-desc{font-family:var(--mono);font-size:0.58rem;color:var(--muted);line-height:1.5;}
-  .ssdeep-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-family:var(--mono);font-size:0.75rem;color:var(--text);outline:none;transition:border-color 0.2s;letter-spacing:0.03em;resize:vertical;min-height:80px;}
-  .ssdeep-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(247,37,133,0.08);}
-  #drop-zone.drag-over{border-color:var(--accent2);background:rgba(247,37,133,0.06);transform:scale(1.01);}
   @keyframes fadeDown{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
   @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
@@ -138,7 +149,7 @@
     <p class="tagline">Malware Intelligence & Threat Attribution Engine</p>
     <div class="status-bar">
       <span class="status-dot"></span><span>SYSTEM ONLINE</span><span>|</span>
-      <span>ENGINE v0.1.0</span><span>|</span><span>STEP 4 OF 11</span>
+      <span>ENGINE v0.1.0</span><span>|</span><span>STEP 4 & 8 OF 11</span>
     </div>
   </header>
 
@@ -201,51 +212,36 @@
       </button>
     </div>
 
-    <!-- File panel -->
+    <!-- File upload → fuzzy-file -->
     <div class="panel" id="panel-file">
-      <div class="input-label">ELF Binary</div>
-      <div style="border:2px dashed var(--border);border-radius:10px;padding:60px 20px;text-align:center;">
-        <div style="font-size:3rem;margin-bottom:12px">🦠</div>
-        <div style="font-family:var(--mono);font-size:0.8rem;color:var(--muted)">File upload coming in a later step</div>
-      </div>
-    </div>
-
-    <!-- ◈ Fuzzy Test panel -->
-    <div class="panel" id="panel-fuzzy">
-      <div class="input-label" style="color:var(--accent2)">◈ Fuzzy Detection — Drop Any Binary</div>
+      <div class="input-label fuzzy">◈ Live Binary Fuzzy (ssdeep)</div>
       <p style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:20px;line-height:1.7">
-        Drop <span style="color:var(--accent2)">any ELF binary</span> — including one the judge mutated themselves.
-        Backend computes ssdeep live, no SHA256 lookup, no pre-seeded hashes.
-        Detects malware family from <span style="color:var(--accent)">chunk similarity alone</span>.
+        Drop <span style="color:var(--accent2)">any ELF malware binary</span>. Backend computes ssdeep live via
+        <code style="font-size:0.65rem;background:#050810;padding:2px 5px;border-radius:3px;border:1px solid #111">/api/fuzzy-file</code>
+        and detects family from similarity only.
       </p>
-
-      <!-- FILE DROP ZONE -->
-      <div id="drop-zone"
-        ondragover="event.preventDefault();this.classList.add('drag-over')"
-        ondragleave="this.classList.remove('drag-over')"
-        ondrop="handleFileDrop(event)"
-        onclick="document.getElementById('file-pick').click()"
-        style="border:2px dashed var(--border);border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;">
-        <input type="file" id="file-pick" style="display:none" onchange="handleFilePick(this)"/>
-        <div style="font-size:2.5rem;margin-bottom:10px">🦠</div>
-        <div style="font-family:var(--mono);font-size:0.8rem;color:var(--text);margin-bottom:6px">Drop mutated ELF here</div>
-        <div style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">or click to browse — any binary file</div>
-        <div id="drop-file-info" style="display:none;margin-top:14px;padding:10px 14px;background:rgba(247,37,133,0.08);border:1px solid rgba(247,37,133,0.25);border-radius:6px">
-          <span style="font-family:var(--mono);font-size:0.72rem;color:var(--accent2)" id="drop-filename"></span>
-          <span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-left:10px" id="drop-filesize"></span>
-        </div>
+      <div class="drop-zone" id="drop-zone-file"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleFileDrop(event)">
+        <input type="file" id="file-input" accept=".elf,.bin,application/octet-stream" onchange="handleFilePick(this)"/>
+        <div class="drop-icon">🦠</div>
+        <div class="drop-label"><span>Drop ELF malware binary here</span><br/>or click to browse<br/><span style="color:var(--muted);font-size:0.65rem">Any binary · live ssdeep · no SHA256 lookup</span></div>
       </div>
-
-      <button class="btn-analyze btn-fuzzy" id="btn-file-fuzzy" onclick="runFileFuzzy()" disabled style="margin-top:14px">
+      <div class="file-info" id="file-info"></div>
+      <button class="btn-analyze btn-fuzzy" id="btn-file-fuzzy" onclick="runFileFuzzy()" disabled>
         ◈ ANALYSE THIS BINARY
       </button>
+    </div>
 
-      <!-- DIVIDER -->
-      <div style="display:flex;align-items:center;gap:14px;margin:28px 0 20px">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);letter-spacing:0.2em">OR TEST WITH PRESETS</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
+    <!-- Fuzzy Test panel (direct ssdeep) -->
+    <div class="panel" id="panel-fuzzy">
+      <div class="input-label fuzzy">◈ Fuzzy Detection — Direct ssdeep</div>
+      <p style="font-family:var(--mono);font-size:0.68rem;color:var(--muted);margin-bottom:20px;line-height:1.7">
+        Paste an <span style="color:var(--accent2)">ssdeep hash</span> or use presets.
+        Backend calls <code style="font-size:0.65rem;background:#050810;padding:2px 5px;border-radius:3px;border:1px solid #111">/api/fuzzy-test</code>
+        and compares against the reference corpus — no MalwareBazaar lookup.
+      </p>
 
       <div class="fuzzy-demo-grid">
         <div class="fuzzy-preset" onclick="loadFuzzyPreset('mozi_mutated')">
@@ -266,12 +262,12 @@
         </div>
       </div>
 
-      <div class="input-label" style="margin-top:20px;color:var(--accent2)">ssdeep Hash (preset or paste)</div>
+      <div class="input-label fuzzy" style="margin-top:10px">ssdeep Hash (preset or paste)</div>
       <textarea class="ssdeep-input" id="ssdeep-input"
         placeholder="Paste ssdeep hash e.g. 3072:phNlHuBaf...:p3lOYoaj..."
         oninput="checkFuzzyReady()"></textarea>
 
-      <button class="btn-analyze btn-fuzzy" id="btn-fuzzy" onclick="runFuzzyTest()" disabled style="margin-top:14px">
+      <button class="btn-analyze btn-fuzzy" id="btn-fuzzy" onclick="runFuzzyTest()" disabled>
         ◈ RUN WITH PRESET / PASTED HASH
       </button>
     </div>
@@ -294,11 +290,12 @@
     <div class="pipeline-steps" id="pipeline"></div>
   </div>
 </div>
-<footer>MALDNA ENGINE · STEP 4: FUZZY HASHING · v0.1.0 · FOR RESEARCH USE ONLY</footer>
+<footer>MALDNA ENGINE · INTEGRATED: FUZZY + THREAT MAP · v0.1.0 · FOR RESEARCH USE ONLY</footer>
 
 <script>
 const BACKEND = "http://localhost:5000";
 let currentMode = 'hash', currentHash = '', backendOnline = false, SAMPLES = {};
+let droppedFile = null;
 
 // Fuzzy presets — real ssdeep from Bazaar + manually mutated variants
 const FUZZY_PRESETS = {
@@ -307,7 +304,6 @@ const FUZZY_PRESETS = {
   mirai_exact:   { ssdeep: "3072:FzySSvodcHTgnM1sCPSJ8epvrzTXE7yAmv:cSSvyNM1sCPSiCvTU7yAmv",       label: "Mirai exact (from MalwareBazaar)" },
   mirai_mutated: { ssdeep: "3072:FzySSvodcHTgnM1sCPSJ8epvrzTXE7yBmv:cSSvyNM1sCPSiCvTU7yBmv",       label: "Mirai mutated variant (unknown SHA256)" },
   unrelated:     { ssdeep: "384:xQzabcRRRRRRRRRRRRRRRRRRRRRRRRRRR:xQzabcRRRRRRRRR",               label: "Unrelated binary — should NOT match" },
-  custom:        { ssdeep: "", label: "My custom ssdeep" },
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -319,10 +315,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkBackend() {
   const dot = document.getElementById('backend-dot'), label = document.getElementById('backend-label');
   try {
-    const r = await fetch(`${BACKEND}/api/health`, {signal: AbortSignal.timeout(5000)});
-    if (r.ok) { backendOnline = true; dot.className = 'backend-dot online'; label.textContent = 'Backend online — Flask @ localhost:5000'; }
-    else throw new Error();
-  } catch { backendOnline = false; dot.className = 'backend-dot offline'; label.textContent = 'Backend offline — run: python app.py'; }
+    const r = await fetch(`${BACKEND}/api/health`, {signal: AbortSignal.timeout(8000)});
+    if (r.ok) {
+      backendOnline = true;
+      dot.className = 'backend-dot online';
+      label.textContent = 'Backend online — run via: python app_integrated.py';
+    } else throw new Error();
+  } catch {
+    backendOnline = false;
+    dot.className = 'backend-dot offline';
+    label.textContent = 'Backend offline — start: python app_integrated.py';
+  }
 }
 
 async function loadSampleHashes() {
@@ -333,7 +336,13 @@ async function loadSampleHashes() {
     SAMPLES = data.samples || {};
     for (const [key, s] of Object.entries(SAMPLES)) {
       const el = document.getElementById(`disp-${key}`);
-      if (el && s.sha256) el.textContent = s.sha256.substring(0,20)+'…'+s.sha256.slice(-8);
+      if (!el) continue;
+      if (s.sha256 && !s.sha256.includes('PASTE')) {
+        el.textContent = s.sha256.substring(0,20)+'…'+s.sha256.slice(-8);
+      } else {
+        el.textContent = '⚠ Hash not set in backend DEMO_SAMPLES';
+        el.style.color = 'var(--warn)';
+      }
     }
   } catch(e) {}
 }
@@ -361,7 +370,10 @@ function onHashInput(val) {
 
 function loadSample(name) {
   const s = SAMPLES[name]; const hash = s?.sha256;
-  if (!hash) return;
+  if (!hash || hash.includes('PASTE')) {
+    alert(`Set the real SHA256 for "${name}" in backend DEMO_SAMPLES if you want a live demo.`);
+    return;
+  }
   currentMode = 'hash';
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-hash').classList.add('active');
@@ -385,18 +397,24 @@ function checkFuzzyReady() {
 
 function checkReady() {
   if (currentMode === 'fuzzy') return;
-  document.getElementById('btn-analyze').disabled = currentMode==='hash' ? currentHash.length<32 : true;
+  if (currentMode === 'hash') {
+    document.getElementById('btn-analyze').disabled = currentHash.length < 32;
+  } else if (currentMode === 'file') {
+    document.getElementById('btn-file-fuzzy').disabled = !droppedFile;
+  }
 }
 
-// ── Run main analysis ──────────────────────────────────────────────
+// ── Hash-based main analysis (/api/analyze) ─────────────────────────
 async function runAnalysis() {
-  if (!backendOnline) { alert('Backend offline. Run: python app.py'); return; }
-  const rs = document.getElementById('result-section'), rb = document.getElementById('result-body'), stat = document.getElementById('result-status');
+  if (!backendOnline) { alert('Backend offline. Run: python app_integrated.py'); return; }
+  const rs = document.getElementById('result-section'),
+        rb = document.getElementById('result-body'),
+        stat = document.getElementById('result-status');
   document.getElementById('result-title').textContent = '// MalDNA Intelligence Report';
   rs.style.display = 'block'; rs.scrollIntoView({behavior:'smooth'});
   stat.className = 'result-status loading';
   stat.innerHTML = '<span class="spinner"></span>SCANNING...';
-  rb.innerHTML = '<span style="font-family:var(--mono);color:var(--muted);font-size:0.75rem">Running pipeline...</span>';
+  rb.innerHTML = '<span style="font-family:var(--mono);color:var(--muted);font-size:0.75rem">Running Bazaar + YARA + Fuzzy + Threat Mapping pipeline...</span>';
   updatePipeline('loading', 1);
 
   try {
@@ -411,12 +429,19 @@ async function runAnalysis() {
     const fuzzy  = data?.pipeline?.step_4_fuzzy_hash || {};
 
     if (bazaar.status === 'found') {
+      const yaraHits = yara.match_count || 0;
+      const fuzzyScore = fuzzy.top_score || 0;
       stat.className = 'result-status success';
-      stat.textContent = fuzzy.top_score > 0 ? `FOUND · FUZZY ${fuzzy.top_score}%` : 'FOUND';
+      if (yaraHits > 0) {
+        stat.textContent = fuzzyScore > 0 ? `FOUND · YARA ${yaraHits} · FUZZY ${fuzzyScore}%` : `FOUND · ${yaraHits} YARA HIT${yaraHits>1?'S':''}`;
+      } else {
+        stat.textContent = fuzzyScore > 0 ? `FOUND · FUZZY ${fuzzyScore}%` : 'FOUND';
+      }
       rb.innerHTML = renderFound(data);
       updatePipeline('done', 1);
-      updatePipeline(yara.match_count > 0 ? 'done' : 'error', 2);
-      updatePipeline(fuzzy.top_score > 0  ? 'done' : 'error', 3);
+      updatePipeline(yaraHits > 0 ? 'done' : (yara.status==='skipped' ? 'error' : 'error'), 2);
+      updatePipeline(fuzzyScore > 0 ? 'done' : (fuzzy.status==='skipped' ? 'error' : 'error'), 3);
+      updatePipeline('done', 7); // threat map conceptually done when analyze returns
     } else if (bazaar.status === 'not_found') {
       stat.className = 'result-status notfound'; stat.textContent = 'NOT IN DB';
       rb.innerHTML = `<div class="notfound-box">⚠ Hash not found in MalwareBazaar.<br/>Hash: ${currentHash}</div>`;
@@ -433,12 +458,10 @@ async function runAnalysis() {
   }
 }
 
-// ── File drop handling ─────────────────────────────────────────────
-let droppedFile = null;
-
+// ── File drop handling → /api/fuzzy-file ────────────────────────────
 function handleFileDrop(e) {
   e.preventDefault();
-  document.getElementById('drop-zone').classList.remove('drag-over');
+  document.getElementById('drop-zone-file').classList.remove('drag-over');
   const file = e.dataTransfer.files[0];
   if (file) setDroppedFile(file);
 }
@@ -450,15 +473,15 @@ function handleFilePick(input) {
 
 function setDroppedFile(file) {
   droppedFile = file;
-  document.getElementById('drop-filename').textContent = file.name;
-  document.getElementById('drop-filesize').textContent = (file.size / 1024).toFixed(1) + ' KB';
-  document.getElementById('drop-file-info').style.display = 'block';
-  document.getElementById('btn-file-fuzzy').disabled = false;
+  const info = document.getElementById('file-info');
+  info.style.display = 'block';
+  info.innerHTML = `<span style="color:var(--accent2)">▶ FILE LOADED</span><br/>Name: ${file.name}<br/>Size: ${(file.size/1024).toFixed(1)} KB`;
+  checkReady();
 }
 
 async function runFileFuzzy() {
   if (!droppedFile) return;
-  if (!backendOnline) { alert('Backend offline. Run: python app.py'); return; }
+  if (!backendOnline) { alert('Backend offline. Run: python app_integrated.py'); return; }
 
   const rs   = document.getElementById('result-section');
   const rb   = document.getElementById('result-body');
@@ -507,104 +530,16 @@ async function runFileFuzzy() {
   }
 }
 
-function renderFileFuzzyResult(data) {
-  const f     = data.fuzzy  || {};
-  const score = f.top_score || 0;
-  const best  = f.best_match;
-  const hits  = f.all_matches || [];
-  const ringCol = score>=80?'#ff4757':score>=60?'#ff6600':score>=40?'#ffc300':score>=20?'#88cc00':'#4a6080';
-  const circ    = 2 * Math.PI * 32;
-  const dash    = (score / 100) * circ;
-
-  const rows = hits.map(h => `
-    <tr style="border-bottom:1px solid #111">
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:${h.color};font-weight:700">${h.score}</td>
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:#e0e0e0">${h.family}</td>
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.62rem;color:#888">${h.variant}</td>
-      <td style="padding:6px 10px"><span style="background:${h.color}22;color:${h.color};padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:0.58rem;border:1px solid ${h.color}44">${h.label}</span></td>
-    </tr>`).join('');
-
-  return `
-  <!-- File info banner -->
-  <div style="margin-bottom:16px;padding:12px 16px;background:rgba(247,37,133,0.06);border:1px solid rgba(247,37,133,0.2);border-radius:6px">
-    <div style="display:flex;gap:20px;flex-wrap:wrap">
-      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">FILENAME</div>
-        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent2)">${data.filename}</div></div>
-      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">FILE SIZE</div>
-        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--text)">${(data.filesize/1024).toFixed(1)} KB</div></div>
-      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">SHA256 (live computed)</div>
-        <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">${data.sha256}</div></div>
-      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">ELF BINARY</div>
-        <div style="font-family:var(--mono);font-size:0.75rem;color:${data.is_elf?'var(--accent)':'var(--warn)'}">${data.is_elf ? '✓ YES' : '⚠ NO'}</div></div>
-    </div>
-    <div style="margin-top:10px;font-family:var(--mono);font-size:0.55rem;color:#333">
-      ssdeep method: <span style="color:#555">${data.ssdeep_method}</span> &nbsp;·&nbsp;
-      Bazaar lookup: <span style="color:var(--danger)">SKIPPED</span> &nbsp;·&nbsp;
-      SHA256 in reference DB: <span style="color:var(--danger)">NOT CHECKED</span>
-    </div>
-  </div>
-
-  <!-- Score + result -->
-  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
-    <div style="text-align:center">
-      <svg width="100" height="100" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1a2e" stroke-width="8"/>
-        <circle cx="40" cy="40" r="32" fill="none" stroke="${ringCol}" stroke-width="8"
-          stroke-dasharray="${dash} ${circ}" stroke-linecap="round" transform="rotate(-90 40 40)"/>
-        <text x="40" y="45" text-anchor="middle" fill="${ringCol}"
-          font-size="20" font-weight="700" font-family="monospace">${score}</text>
-      </svg>
-      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">/100</div>
-    </div>
-
-    <div style="flex:1;min-width:200px">
-      ${best ? `
-        <div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);margin-bottom:4px">DETECTED FAMILY</div>
-        <div style="font-family:var(--mono);font-size:1.4rem;color:${ringCol};font-weight:700">${best.family}</div>
-        <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-bottom:12px">${best.variant}</div>
-        <div style="font-family:var(--mono);font-size:0.65rem;padding:6px 14px;background:${ringCol}22;border:1px solid ${ringCol}44;border-radius:4px;color:${ringCol};display:inline-block">${best.label} SIMILARITY</div>
-      ` : `
-        <div style="font-family:var(--mono);font-size:1rem;color:var(--muted)">No family matched</div>
-        <div style="font-family:var(--mono);font-size:0.68rem;color:#555;margin-top:8px">This binary does not resemble any known family in the reference DB</div>
-      `}
-    </div>
-
-    <div style="min-width:180px;padding:12px;background:rgba(0,245,212,0.04);border:1px solid rgba(0,245,212,0.1);border-radius:6px;font-family:var(--mono);font-size:0.6rem;color:var(--muted);line-height:1.9">
-      <div style="color:var(--accent);margin-bottom:4px">WHAT HAPPENED</div>
-      File received by backend<br/>
-      ssdeep computed live<br/>
-      SHA256 → <span style="color:var(--danger)">never looked up</span><br/>
-      Family → <span style="color:${ringCol}">${best ? best.family + ' detected' : 'not found'}</span>
-    </div>
-  </div>
-
-  ${hits.length > 0 ? `
-  <div style="margin-bottom:16px">
-    <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);letter-spacing:0.15em;margin-bottom:8px">ALL SIMILARITY HITS</div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="border-bottom:1px solid #1a2744">
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">SCORE</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">FAMILY</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">VARIANT</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">CONFIDENCE</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>` : ''}
-
-  <div style="padding:10px 14px;background:#050810;border:1px solid #111;border-radius:6px">
-    <div style="font-family:var(--mono);font-size:0.55rem;color:#333;margin-bottom:4px">COMPUTED SSDEEP</div>
-    <div style="font-family:var(--mono);font-size:0.6rem;color:#444;word-break:break-all">${data.computed_ssdeep}</div>
-  </div>`;
-}
-
+// ── Direct fuzzy test (/api/fuzzy-test) ─────────────────────────────
 async function runFuzzyTest() {
-  if (!backendOnline) { alert('Backend offline. Run: python app.py'); return; }
+  if (!backendOnline) { alert('Backend offline. Run: python app_integrated.py'); return; }
   const ssdeep = document.getElementById('ssdeep-input').value.trim();
   const label  = 'Fuzzy test sample';
   if (!ssdeep) return;
 
-  const rs = document.getElementById('result-section'), rb = document.getElementById('result-body'), stat = document.getElementById('result-status');
+  const rs = document.getElementById('result-section'),
+        rb = document.getElementById('result-body'),
+        stat = document.getElementById('result-status');
   document.getElementById('result-title').textContent = '// Fuzzy Hash Direct Test';
   rs.style.display = 'block'; rs.scrollIntoView({behavior:'smooth'});
   stat.className = 'result-status loading';
@@ -634,104 +569,13 @@ async function runFuzzyTest() {
   }
 }
 
-// ── Render fuzzy direct result ─────────────────────────────────────
-function renderFuzzyDirect(data, label, inputSsdeep) {
-  const f     = data.fuzzy || {};
-  const score = f.top_score || 0;
-  const best  = f.best_match;
-  const hits  = f.all_matches || [];
-  const meta  = f.metadata   || {};
-
-  const ringCol = score >= 80 ? '#ff4757'
-                : score >= 60 ? '#ff6600'
-                : score >= 40 ? '#ffc300'
-                : score >= 20 ? '#88cc00'
-                :               '#4a6080';
-
-  const circ   = 2 * Math.PI * 32;
-  const dash   = (score / 100) * circ;
-
-  const tableRows = hits.map(h => `
-    <tr style="border-bottom:1px solid #111">
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:${h.color};font-weight:700">${h.score}</td>
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:#e0e0e0">${h.family}</td>
-      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.62rem;color:#888">${h.variant}</td>
-      <td style="padding:6px 10px">
-        <span style="background:${h.color}22;color:${h.color};padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:0.58rem;border:1px solid ${h.color}44">${h.label}</span>
-      </td>
-    </tr>`).join('');
-
-  return `
-  <div style="margin-bottom:16px;padding:12px 16px;background:rgba(247,37,133,0.06);border:1px solid rgba(247,37,133,0.2);border-radius:6px;font-family:var(--mono);font-size:0.72rem;">
-    <span style="color:var(--accent2)">◈ DIRECT FUZZY TEST</span>
-    <span style="color:var(--muted);margin-left:12px">${label}</span><br/>
-    <span style="color:#555;font-size:0.6rem">No SHA256 lookup · No MalwareBazaar · Pure ssdeep comparison</span>
-  </div>
-
-  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
-    <!-- Score ring -->
-    <div style="text-align:center">
-      <svg width="100" height="100" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1a2e" stroke-width="8"/>
-        <circle cx="40" cy="40" r="32" fill="none"
-          stroke="${ringCol}" stroke-width="8"
-          stroke-dasharray="${dash} ${circ}"
-          stroke-linecap="round"
-          transform="rotate(-90 40 40)"/>
-        <text x="40" y="45" text-anchor="middle" fill="${ringCol}"
-          font-size="20" font-weight="700" font-family="monospace">${score}</text>
-      </svg>
-      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">/100</div>
-    </div>
-
-    <!-- Result -->
-    <div style="flex:1;min-width:200px">
-      ${best ? `
-        <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);margin-bottom:4px">DETECTED FAMILY</div>
-        <div style="font-family:var(--mono);font-size:1.4rem;color:${ringCol};font-weight:700;margin-bottom:4px">${best.family}</div>
-        <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-bottom:12px">${best.variant}</div>
-        <div style="font-family:var(--mono);font-size:0.65rem;padding:6px 12px;background:${ringCol}22;border:1px solid ${ringCol}44;border-radius:4px;color:${ringCol};display:inline-block">${best.label} SIMILARITY</div>
-      ` : `
-        <div style="font-family:var(--mono);font-size:1rem;color:var(--muted)">No malware family matched</div>
-        <div style="font-family:var(--mono);font-size:0.68rem;color:#555;margin-top:8px">ssdeep chunks don't match any known family in the reference DB</div>
-      `}
-    </div>
-
-    <!-- What this proves -->
-    <div style="min-width:180px;padding:12px;background:rgba(0,245,212,0.04);border:1px solid rgba(0,245,212,0.1);border-radius:6px;font-family:var(--mono);font-size:0.6rem;color:var(--muted);line-height:1.8">
-      <div style="color:var(--accent);margin-bottom:4px">WHY THIS MATTERS</div>
-      SHA256 → unknown to Bazaar<br/>
-      ssdeep → still identifies family<br/>
-      Attacker changed bytes → <span style="color:${ringCol}">still caught</span>
-    </div>
-  </div>
-
-  ${hits.length > 0 ? `
-  <div style="margin-bottom:16px">
-    <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);letter-spacing:0.15em;margin-bottom:8px">ALL SIMILARITY HITS</div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="border-bottom:1px solid #1a2744">
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">SCORE</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">FAMILY</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">VARIANT</th>
-        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">CONFIDENCE</th>
-      </tr></thead>
-      <tbody>${tableRows}</tbody>
-    </table>
-  </div>` : ''}
-
-  <div style="padding:10px 14px;background:#050810;border:1px solid #111;border-radius:6px">
-    <div style="font-family:var(--mono);font-size:0.55rem;color:#333;margin-bottom:4px">INPUT SSDEEP</div>
-    <div style="font-family:var(--mono);font-size:0.6rem;color:#444;word-break:break-all">${inputSsdeep}</div>
-  </div>`;
-}
-
-// ── Render full analysis (hash lookup) ────────────────────────────
+// ── Render helpers (hash + threat map) ─────────────────────────────-
 function renderFound(data) {
   const m    = data.pipeline.step_2_bazaar.metadata;
   const sum  = data.summary || {};
   const yara = data.pipeline.step_3_yara       || {};
   const fuzz = data.pipeline.step_4_fuzzy_hash || {};
+  const threat = data.pipeline.step_8_threat_map || {};
 
   const field = (label, val, cls='') =>
     `<div class="summary-item"><div class="summary-label">${label}</div><div class="summary-value ${cls}">${val||'—'}</div></div>`;
@@ -741,11 +585,50 @@ function renderFound(data) {
   const tags = (m.tags||[]).map(t =>
     `<span style="font-family:var(--mono);font-size:0.58rem;padding:3px 9px;background:rgba(0,245,212,0.06);border:1px solid rgba(0,245,212,0.15);border-radius:3px;color:var(--accent)">${t}</span>`).join(' ');
 
-  const familyBadge = sum.family_source==='yara'
-    ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(247,37,133,0.1);border:1px solid rgba(247,37,133,0.3);border-radius:3px;color:var(--accent2);margin-left:8px">✓ YARA CONFIRMED</span>`
-    : sum.family_source==='fuzzy_match'
-      ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(0,245,212,0.1);border:1px solid rgba(0,245,212,0.3);border-radius:3px;color:var(--accent);margin-left:8px">◈ FUZZY MATCH</span>`
-      : `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(0,245,212,0.06);border:1px solid rgba(0,245,212,0.2);border-radius:3px;color:var(--muted);margin-left:8px">BAZAAR SIG</span>`;
+  const familyBadge =
+    sum.family_source==='yara'
+      ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(247,37,133,0.1);border:1px solid rgba(247,37,133,0.3);border-radius:3px;color:var(--accent2);margin-left:8px">✓ YARA CONFIRMED</span>`
+      : sum.family_source==='fuzzy_match'
+        ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(0,245,212,0.1);border:1px solid rgba(0,245,212,0.3);border-radius:3px;color:var(--accent);margin-left:8px">◈ FUZZY MATCH</span>`
+        : `<span style="font-family:var(--mono);font-size:0.55rem;padding:2px 7px;background:rgba(0,245,212,0.06);border:1px solid rgba(0,245,212,0.2);border-radius:3px;color:var(--muted);margin-left:8px">BAZAAR SIG</span>`;
+
+  const threatLevel = (threat.threat_level || sum.threat_level || 'UNKNOWN').toUpperCase();
+  const actorName   = threat.actor_name || sum.actor_name || 'Unknown';
+  const actorPills  = (threat.also_known_as || []).map(a =>
+    `<span class="threat-pill">AKA ${a}</span>`).join('');
+  const sectorPills = (threat.targeted_sectors || []).map(s =>
+    `<span class="threat-pill">${s}</span>`).join('');
+  const regionPills = (threat.targeted_regions || []).map(r =>
+    `<span class="threat-pill">${r}</span>`).join('');
+
+  let levelColor = 'var(--muted)', levelBg = 'rgba(74,96,128,0.3)';
+  if (threatLevel === 'HIGH' || threatLevel === 'CRITICAL') { levelColor='var(--danger)'; levelBg='rgba(255,71,87,0.2)'; }
+  else if (threatLevel === 'MEDIUM') { levelColor='var(--warn)'; levelBg='rgba(255,195,0,0.25)'; }
+  else if (threatLevel === 'LOW') { levelColor='var(--accent)'; levelBg='rgba(0,245,212,0.2)'; }
+
+  const threatSection = actorName === 'Unknown' && !threat.description ? '' : `
+    <div class="threat-section">
+      <div class="threat-title">// Threat Actor Mapping · Step 8</div>
+      <div class="threat-row" style="margin-bottom:10px">
+        <div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">PRIMARY ACTOR</div>
+          <div style="font-family:var(--mono);font-size:1rem;color:var(--accent3)">${actorName}</div>
+          ${threat.actor_id ? `<div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">ID: ${threat.actor_id}</div>` : ''}
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">THREAT LEVEL</div>
+          <span class="threat-level-pill" style="background:${levelBg};color:${levelColor};border:1px solid ${levelColor}66">${threatLevel}</span>
+        </div>
+        <div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">ORIGIN</div>
+          <div style="font-family:var(--mono);font-size:0.75rem;color:var(--text)">${threat.origin || 'Unknown'}</div>
+        </div>
+      </div>
+      ${actorPills ? `<div style="margin-bottom:8px"><span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-right:6px">Aliases:</span>${actorPills}</div>` : ''}
+      ${sectorPills ? `<div style="margin-bottom:4px"><span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-right:6px">Sectors:</span>${sectorPills}</div>` : ''}
+      ${regionPills ? `<div style="margin-bottom:4px"><span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-right:6px">Regions:</span>${regionPills}</div>` : ''}
+      ${threat.description ? `<div style="margin-top:8px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);line-height:1.7">${threat.description}</div>` : ''}
+    </div>`;
 
   return `
     <div class="summary-grid">
@@ -757,6 +640,7 @@ function renderFound(data) {
       ${field('Last Seen', m.last_seen)}
       ${field('AV Detections', m.av_detection_count, m.av_detection_count>5?'danger':'warn')}
       ${field('YARA Matches', yara.match_count||0, yara.match_count>0?'danger':'')}
+      ${field('Fuzzy Score', fuzz.top_score || 0, fuzz.top_score>0?'warn':'')}
       ${field('Origin Country', m.origin_country||'Unknown')}
       ${field('Reporter', m.reporter||'Unknown')}
     </div>
@@ -770,12 +654,14 @@ function renderFound(data) {
     ${avChips ? `<div class="av-section"><div class="av-title">AV Detections (${m.av_detection_count} engines)</div><div class="av-list">${avChips}</div></div>` : ''}
     ${renderYaraSection(yara)}
     ${renderFuzzySection(fuzz)}
+    ${threatSection}
     <div class="raw-toggle" onclick="toggleRaw(this)">▶ Show raw JSON</div>
     <div class="raw-json-wrap" id="raw-json-wrap">
       <pre class="result-json">${syntaxHighlight(JSON.stringify(data,null,2))}</pre>
     </div>`;
 }
 
+// YARA + fuzzy sections adapted from index2.html
 function renderYaraSection(yara) {
   if (!yara) return '';
   if (yara.status==='skipped'||yara.status==='pending')
@@ -808,7 +694,7 @@ function renderFuzzySection(fuzz) {
     <td style="padding:5px 10px;font-family:var(--mono);font-size:0.7rem;color:${h.color};font-weight:600">${h.score}</td>
     <td style="padding:5px 10px;font-family:var(--mono);font-size:0.7rem;color:#e0e0e0">${h.family}</td>
     <td style="padding:5px 10px;font-family:var(--mono);font-size:0.62rem;color:#888">${h.variant}</td>
-    <td style="padding:5px 10px"><span style="background:${h.color}22;color:${h.color};padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:0.58rem">${h.label}</span></td>
+    <td style="padding:5px 10px"><span style="background:${h.color}22;color:${h.color};padding:2px 7px;border-radius:3px;font-family:var(--mono);font-size:0.58rem;border:1px solid ${h.color}44">${h.label}</span></td>
   </tr>`).join('');
   return `<div style="margin-top:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
     <div style="padding:11px 16px;background:rgba(0,245,212,0.04);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
@@ -840,12 +726,172 @@ function renderFuzzySection(fuzz) {
   </div>`;
 }
 
+// Fuzzy-only result renderers for /api/fuzzy-file and /api/fuzzy-test,
+// copied from index2.html (simplified only where needed)
+function renderFileFuzzyResult(data) {
+  const f     = data.fuzzy  || {};
+  const score = f.top_score || 0;
+  const best  = f.best_match;
+  const hits  = f.all_matches || [];
+  const ringCol = score>=80?'#ff4757':score>=60?'#ff6600':score>=40?'#ffc300':score>=20?'#88cc00':'#4a6080';
+  const circ    = 2 * Math.PI * 32;
+  const dash    = (score / 100) * circ;
+
+  const rows = hits.map(h => `
+    <tr style="border-bottom:1px solid #111">
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:${h.color};font-weight:700">${h.score}</td>
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:#e0e0e0">${h.family}</td>
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.62rem;color:#888">${h.variant}</td>
+      <td style="padding:6px 10px"><span style="background:${h.color}22;color:${h.color};padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:0.58rem;border:1px solid ${h.color}44">${h.label}</span></td>
+    </tr>`).join('');
+
+  return `
+  <div style="margin-bottom:16px;padding:12px 16px;background:rgba(247,37,133,0.06);border:1px solid rgba(247,37,133,0.2);border-radius:6px">
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">FILENAME</div>
+        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--accent2)">${data.filename}</div></div>
+      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">FILE SIZE</div>
+        <div style="font-family:var(--mono);font-size:0.75rem;color:var(--text)">${(data.filesize/1024).toFixed(1)} KB</div></div>
+      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">SHA256 (live computed)</div>
+        <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">${data.sha256}</div></div>
+      <div><div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">ELF BINARY</div>
+        <div style="font-family:var(--mono);font-size:0.75rem;color:${data.is_elf?'var(--accent)':'var(--warn)'}">${data.is_elf ? '✓ YES' : '⚠ NO'}</div></div>
+    </div>
+    <div style="margin-top:10px;font-family:var(--mono);font-size:0.55rem;color:#333">
+      ssdeep method: <span style="color:#555">${data.ssdeep_method}</span> · Bazaar lookup: <span style="color:var(--danger)">SKIPPED</span>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+    <div style="text-align:center">
+      <svg width="100" height="100" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+        <circle cx="40" cy="40" r="32" fill="none" stroke="${ringCol}" stroke-width="8"
+          stroke-dasharray="${dash} ${circ}" stroke-linecap="round" transform="rotate(-90 40 40)"/>
+        <text x="40" y="45" text-anchor="middle" fill="${ringCol}"
+          font-size="20" font-weight="700" font-family="monospace">${score}</text>
+      </svg>
+      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">/100</div>
+    </div>
+    <div style="flex:1;min-width:200px">
+      ${best ? `
+        <div style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);margin-bottom:4px">DETECTED FAMILY</div>
+        <div style="font-family:var(--mono);font-size:1.4rem;color:${ringCol};font-weight:700">${best.family}</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-bottom:12px">${best.variant}</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;padding:6px 14px;background:${ringCol}22;border:1px solid ${ringCol}44;border-radius:4px;color:${ringCol};display:inline-block">${best.label} SIMILARITY</div>
+      ` : `
+        <div style="font-family:var(--mono);font-size:1rem;color:var(--muted)">No family matched</div>
+        <div style="font-family:var(--mono);font-size:0.68rem;color:#555;margin-top:8px">This binary does not resemble any known family in the reference DB</div>
+      `}
+    </div>
+  </div>
+
+  ${hits.length > 0 ? `
+  <div style="margin-bottom:16px">
+    <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);letter-spacing:0.15em;margin-bottom:8px">ALL SIMILARITY HITS</div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid #1a2744">
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">SCORE</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">FAMILY</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">VARIANT</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">CONFIDENCE</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div style="padding:10px 14px;background:#050810;border:1px solid #111;border-radius:6px">
+    <div style="font-family:var(--mono);font-size:0.55rem;color:#333;margin-bottom:4px">COMPUTED SSDEEP</div>
+    <div style="font-family:var(--mono);font-size:0.6rem;color:#444;word-break:break-all">${data.computed_ssdeep}</div>
+  </div>`;
+}
+
+function renderFuzzyDirect(data, label, inputSsdeep) {
+  const f     = data.fuzzy || {};
+  const score = f.top_score || 0;
+  const best  = f.best_match;
+  const hits  = f.all_matches || [];
+  const ringCol = score >= 80 ? '#ff4757'
+                : score >= 60 ? '#ff6600'
+                : score >= 40 ? '#ffc300'
+                : score >= 20 ? '#88cc00'
+                :               '#4a6080';
+  const circ   = 2 * Math.PI * 32;
+  const dash   = (score / 100) * circ;
+  const tableRows = hits.map(h => `
+    <tr style="border-bottom:1px solid #111">
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:${h.color};font-weight:700">${h.score}</td>
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.72rem;color:#e0e0e0">${h.family}</td>
+      <td style="padding:6px 10px;font-family:var(--mono);font-size:0.62rem;color:#888">${h.variant}</td>
+      <td style="padding:6px 10px">
+        <span style="background:${h.color}22;color:${h.color};padding:2px 8px;border-radius:3px;font-family:var(--mono);font-size:0.58rem;border:1px solid ${h.color}44">${h.label}</span>
+      </td>
+    </tr>`).join('');
+
+  return `
+  <div style="margin-bottom:16px;padding:12px 16px;background:rgba(247,37,133,0.06);border:1px solid rgba(247,37,133,0.2);border-radius:6px;font-family:var(--mono);font-size:0.72rem;">
+    <span style="color:var(--accent2)">◈ DIRECT FUZZY TEST</span>
+    <span style="color:var(--muted);margin-left:12px">${label}</span><br/>
+    <span style="color:#555;font-size:0.6rem">No SHA256 lookup · No MalwareBazaar · Pure ssdeep comparison</span>
+  </div>
+
+  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+    <div style="text-align:center">
+      <svg width="100" height="100" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="32" fill="none" stroke="#1a1a2e" stroke-width="8"/>
+        <circle cx="40" cy="40" r="32" fill="none"
+          stroke="${ringCol}" stroke-width="8"
+          stroke-dasharray="${dash} ${circ}"
+          stroke-linecap="round"
+          transform="rotate(-90 40 40)"/>
+        <text x="40" y="45" text-anchor="middle" fill="${ringCol}"
+          font-size="20" font-weight="700" font-family="monospace">${score}</text>
+      </svg>
+      <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">/100</div>
+    </div>
+
+    <div style="flex:1;min-width:200px">
+      ${best ? `
+        <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);margin-bottom:4px">DETECTED FAMILY</div>
+        <div style="font-family:var(--mono);font-size:1.4rem;color:${ringCol};font-weight:700;margin-bottom:4px">${best.family}</div>
+        <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-bottom:12px">${best.variant}</div>
+        <div style="font-family:var(--mono);font-size:0.65rem;padding:6px 12px;background:${ringCol}22;border:1px solid ${ringCol}44;border-radius:4px;color:${ringCol};display:inline-block">${best.label} SIMILARITY</div>
+      ` : `
+        <div style="font-family:var(--mono);font-size:1rem;color:var(--muted)">No malware family matched</div>
+        <div style="font-family:var(--mono);font-size:0.68rem;color:#555;margin-top:8px">ssdeep chunks don't match any known family in the reference DB</div>
+      `}
+    </div>
+  </div>
+
+  ${hits.length > 0 ? `
+  <div style="margin-bottom:16px">
+    <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);letter-spacing:0.15em;margin-bottom:8px">ALL SIMILARITY HITS</div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid #1a2744">
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">SCORE</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">FAMILY</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">VARIANT</th>
+        <th style="padding:6px 10px;text-align:left;font-family:var(--mono);font-size:0.55rem;color:#444;font-weight:normal">CONFIDENCE</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div style="padding:10px 14px;background:#050810;border:1px solid #111;border-radius:6px">
+    <div style="font-family:var(--mono);font-size:0.55rem;color:#333;margin-bottom:4px">INPUT SSDEEP</div>
+    <div style="font-family:var(--mono);font-size:0.6rem;color:#444;word-break:break-all">${inputSsdeep}</div>
+  </div>`;
+}
+
 function toggleRaw(el){const w=document.getElementById('raw-json-wrap');w.classList.toggle('open');el.textContent=w.classList.contains('open')?'▼ Hide raw JSON':'▶ Show raw JSON';}
 
+// Pipeline UI
 const PIPELINE_STEPS=[{icon:'01',label:'Input'},{icon:'02',label:'Bazaar'},{icon:'03',label:'YARA'},{icon:'04',label:'Fuzzy'},{icon:'05',label:'Features'},{icon:'06',label:'Similarity'},{icon:'07',label:'Confidence'},{icon:'08',label:'Threat Map'},{icon:'09',label:'MITRE'},{icon:'10',label:'Contain'}];
 function buildPipeline(){const wrap=document.getElementById('pipeline');PIPELINE_STEPS.forEach((s,i)=>{const el=document.createElement('div');el.className='pipe-step';el.innerHTML=`<div class="pipe-node" id="pn-${i}">${s.icon}</div><div class="pipe-label">${s.label}</div>`;wrap.appendChild(el);if(i<PIPELINE_STEPS.length-1){const a=document.createElement('div');a.className='pipe-arrow';wrap.appendChild(a);}});document.getElementById('pn-0').className='pipe-node done';}
 function updatePipeline(state,idx){const n=document.getElementById(`pn-${idx}`);if(!n)return;n.className=state==='loading'?'pipe-node active':state==='done'?'pipe-node done':'pipe-node error';}
+
 function syntaxHighlight(json){return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{let c='num';if(/^"/.test(m))c=/:$/.test(m)?'key':'str';else if(/true|false/.test(m))c='bool';else if(/null/.test(m))c='null';return`<span class="${c}">${m}</span>`;});}
 </script>
 </body>
 </html>
+
